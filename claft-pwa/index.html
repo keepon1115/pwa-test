@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ▼ PWA関連メタタグ ▼ -->
+    <meta name="theme-color" content="#87CEEB"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CLAFT Quest">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+    <!-- ▲ PWA関連メタタグ ▲ -->
+    <title>CLAFT クエストマップ - 冒険の書</title>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSSは前回と変更なしのため、ここでは省略します */
+        /* (実際のファイルでは、前回のCSSがここにそのまま入ります) */
+        /* ベーススタイル */
+        * { margin: 0; padding: 0; box-sizing: border-box; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
+        body { font-family: 'DotGothic16', 'M PLUS Rounded 1c', sans-serif; line-height: 1.6; color: #2c2c2c; overflow-x: hidden; background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%); min-height: 100vh; position: relative; padding-bottom: 100px; }
+        .sky-object { position: fixed; opacity: 0.8; animation-timing-function: linear; animation-iteration-count: infinite; z-index: 1; pointer-events: none; }
+        .cloud { width: 100px; height: 40px; background: white; border-radius: 100px; box-shadow: 20px 10px 0 10px white, -20px 10px 0 5px white; }
+        .ufo { font-size: 40px; text-align: center; animation: ufo-wobble 3s ease-in-out infinite alternate; }
+        .ufo::before { content: '🛸'; }
+        @keyframes ufo-wobble { from { transform: translateY(-3px) rotate(-2deg); } to { transform: translateY(3px) rotate(2deg); } }
+        @keyframes float-sky-ltr { from { transform: translateX(0) translateY(var(--sy, 0)); } to { transform: translateX(calc(100vw + 200px)) translateY(var(--ey, 0)); } }
+        @keyframes float-sky-rtl { from { transform: translateX(0) translateY(var(--sy, 0)); } to { transform: translateX(calc(-100vw - 200px)) translateY(var(--ey, 0)); } }
+        .hamburger { position: fixed; top: 20px; left: 20px; z-index: 1100; width: 48px; height: 48px; background: #8B4513; border: 3px solid #654321; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; transition: transform 0.1s ease; box-shadow: 0 0 0 1px #A0522D, 3px 3px 0 0 rgba(0,0,0,0.3); }
+        .hamburger:hover { transform: translate(-1px, -1px); box-shadow: 0 0 0 1px #A0522D, 4px 4px 0 0 rgba(0,0,0,0.3); }
+        .hamburger:active { transform: translate(1px, 1px); box-shadow: 0 0 0 1px #A0522D, 2px 2px 0 0 rgba(0,0,0,0.3); }
+        .hamburger span { width: 24px; height: 4px; background: #F5DEB3; border-radius: 0; transition: all 0.3s ease; }
+        .side-nav { position: fixed; top: 0; left: -100%; width: 100%; height: 100vh; background: #2C1810; border-right: 4px solid #654321; z-index: 1099; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 80px 20px 20px; }
+        @media (min-width: 768px) { .side-nav { width: 280px; } }
+        .side-nav.active { left: 0; }
+        .side-nav-item { padding: 16px 20px; margin: 8px 0; background: #3D2817; border: 2px solid #654321; cursor: pointer; transition: all 0.1s ease; font-weight: 500; color: #F5DEB3; text-align: center; position: relative; box-shadow: 2px 2px 0 0 rgba(0,0,0,0.5); }
+        .side-nav-item:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 0 rgba(0,0,0,0.5); background: #4D3827; }
+        .side-nav-item:active { transform: translate(0, 0); box-shadow: 1px 1px 0 0 rgba(0,0,0,0.5); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 80px 16px 40px; position: relative; z-index: 10; }
+        .map-header { text-align: center; margin-bottom: 30px; position: relative; }
+        .map-header h1 { font-size: 2.5rem; color: #FFF; margin-bottom: 16px; text-shadow: 2px 2px 0 #4DB6F7, 4px 4px 0 #3A8BC4, 6px 6px 8px rgba(0,0,0,0.3); letter-spacing: 2px; animation: float_title 3s ease-in-out infinite; }
+        @keyframes float_title { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .map-header p { font-size: 1.1rem; color: #FFF; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); background: rgba(0,0,0,0.2); display: inline-block; padding: 4px 16px; border-radius: 0; border: 2px solid rgba(255,255,255,0.3); }
+        .adventure-log-button { display: inline-block; margin: 20px auto 0; padding: 12px 32px; background: #FFD700; border: 3px solid #B8860B; color: #654321; font-weight: bold; font-size: 1rem; cursor: pointer; position: relative; box-shadow: 0 0 0 1px #DAA520, 4px 4px 0 0 rgba(0,0,0,0.3); transition: all 0.1s ease; }
+        .adventure-log-button::before { content: '📖'; margin-right: 8px; }
+        .adventure-log-button:hover { transform: translate(-2px, -2px); box-shadow: 0 0 0 1px #DAA520, 6px 6px 0 0 rgba(0,0,0,0.3); }
+        .adventure-log-button:active { transform: translate(1px, 1px); box-shadow: 0 0 0 1px #DAA520, 2px 2px 0 0 rgba(0,0,0,0.3); }
+        .stage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-bottom: 40px; padding: 0 20px; }
+        @media (max-width: 767px) { .stage-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; padding: 0; } }
+        .stage-node { position: relative; text-align: center; cursor: pointer; transition: transform 0.2s ease; }
+        .stage-node:nth-child(2), .stage-node:nth-child(5) { transform: translateY(40px); }
+        @media (max-width: 767px) { .stage-node:nth-child(even) { transform: translateY(40px); } .stage-node:nth-child(5) { transform: translateY(0); } }
+        .stage-node:hover { transform: translateY(-5px) scale(1.05); }
+        .stage-node:nth-child(2):hover, .stage-node:nth-child(5):hover { transform: translateY(35px) scale(1.05); }
+        @media (max-width: 767px) { .stage-node:nth-child(even):hover { transform: translateY(35px) scale(1.05); } .stage-node:nth-child(5):hover { transform: translateY(-5px) scale(1.05); } }
+        .stage-icon { width: 120px; height: 120px; margin: 0 auto 16px; position: relative; background: #E8F5E9; border: 4px solid #333; box-shadow: 0 0 0 2px #666, 6px 6px 0 0 rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 64px; transition: all 0.3s ease; overflow: hidden; }
+        .stage-node.locked .stage-icon, .stage-node.current .stage-icon { background: #9E9E9E; }
+        .stage-node.completed .stage-icon { background: #FFF9C4; box-shadow: 0 0 0 2px #FFD700, 6px 6px 0 0 rgba(0,0,0,0.3), 0 0 20px rgba(255,215,0,0.5); }
+        .stage-icon img.icon-image { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; display: block; transition: filter 0.3s ease; filter: grayscale(1); }
+        .stage-node.completed .stage-icon img.icon-image { filter: grayscale(0); }
+        .stage-node.locked .stage-icon img.icon-image { filter: grayscale(1); opacity: 0.7; }
+        .stage-icon .icon-fallback { font-size: 64px; display: none; filter: grayscale(1); }
+        .stage-node.completed .stage-icon .icon-fallback { filter: grayscale(0); }
+        .stage-node.locked .stage-icon .icon-fallback { filter: grayscale(1); opacity: 0.7; }
+        .clear-effect { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; object-fit: contain; display: none; z-index: 2; animation: effect-animation 2s ease-in-out infinite; }
+        .stage-node.completed .clear-effect { display: block; }
+        @keyframes effect-animation { 0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.9; } 25% { transform: translateY(-5px) scale(1.1) rotate(5deg); opacity: 1; } 50% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.9; } 75% { transform: translateY(-3px) scale(1.05) rotate(-5deg); opacity: 1; } }
+        .clear-badge { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: #FFD700; border: 3px solid #B8860B; padding: 4px 12px; font-weight: bold; font-size: 14px; color: #654321; letter-spacing: 1px; box-shadow: 0 0 0 1px #DAA520, 3px 3px 0 0 rgba(0,0,0,0.5); z-index: 10; animation: bounce-in 0.5s ease; display: none; }
+        .stage-node.completed .clear-badge { display: block; }
+        @keyframes bounce-in { 0% { transform: translateX(-50%) translateY(-20px) scale(0); } 50% { transform: translateX(-50%) translateY(0) scale(1.2); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
+        .stage-number-badge { position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); width: 44px; height: 44px; background: #4DB6F7; border: 3px solid #2C88C7; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: white; box-shadow: 0 0 0 1px #5AC8F7, 3px 3px 0 0 rgba(0,0,0,0.3); z-index: 5; padding: 2px; }
+        .stage-number-badge::before { content: ''; width: 6px; height: 6px; background: white; border-radius: 50%; position: absolute; top: 8px; left: 10px; box-shadow: 0 0 0 1px #2C88C7; }
+        .stage-number-badge::after { content: ''; width: 6px; height: 6px; background: white; border-radius: 50%; position: absolute; top: 8px; right: 10px; box-shadow: 0 0 0 1px #2C88C7; }
+        .stage-number-text { margin-top: 14px; }
+        .stage-node.locked .stage-number-badge { background: #757575; border-color: #616161; box-shadow: 0 0 0 1px #9E9E9E, 3px 3px 0 0 rgba(0,0,0,0.3); }
+        .stage-node.locked .stage-number-badge::before, .stage-node.locked .stage-number-badge::after { background: #ccc; box-shadow: 0 0 0 1px #616161; }
+        .stage-node.completed .stage-number-badge { background: #8EE38F; border-color: #6CBD6C; }
+        .stage-node.completed .stage-number-badge::before, .stage-node.completed .stage-number-badge::after { box-shadow: 0 0 0 1px #6CBD6C; }
+        .hero-face { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 40px; height: 40px; background-color: #FFEB3B; border: 3px solid #FBC02D; border-radius: 50%; z-index: 20; display: none; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); animation: hero-face-bounce 1.5s ease-in-out infinite; }
+        .hero-face::before, .hero-face::after { content: ''; position: absolute; width: 6px; height: 8px; background-color: #333; border-radius: 3px / 4px; top: 12px; }
+        .hero-face::before { left: 9px; }
+        .hero-face::after { right: 9px; }
+        .hero-face .mouth { position: absolute; width: 16px; height: 2px; background-color: #333; bottom: 10px; left: 50%; transform: translateX(-50%); border-radius: 1px; }
+        .stage-node.current .hero-face { display: block; }
+        @keyframes hero-face-bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
+        .stage-info { background: white; border: 3px solid #333; padding: 12px 16px; margin-top: 16px; position: relative; box-shadow: 0 0 0 1px #666, 4px 4px 0 0 rgba(0,0,0,0.2); }
+        .stage-title { font-size: 1.1rem; font-weight: bold; color: #333; margin-bottom: 4px; }
+        .stage-description { font-size: 0.9rem; color: #666; line-height: 1.4; }
+        .path-line { position: absolute; width: 60px; height: 4px; background: repeating-linear-gradient( 90deg, #8B4513, #8B4513 10px, #D2691E 10px, #D2691E 20px ); top: 60px; right: -60px; transform: translateY(-50%); z-index: 1; }
+        .stage-node:nth-child(3n) .path-line, .stage-node:last-child .path-line { display: none; }
+        @media (max-width: 767px) { .stage-node:nth-child(3n) .path-line { display: block; } .stage-node:nth-child(2n) .path-line, .stage-node:last-child .path-line { display: none; } }
+        .quest-button { position: fixed; bottom: 30px; right: 30px; width: auto; min-width: 200px; margin: 0; padding: 16px 32px; background: #FF6B6B; border: 4px solid #DC143C; color: white; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 0 0 2px #FF8787, 6px 6px 0 0 rgba(0,0,0,0.3); transition: all 0.1s ease; animation: pulse_button 2s ease-in-out infinite; z-index: 900; }
+        @keyframes pulse_button { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+        .quest-button:hover { transform: translate(-2px, -2px) scale(1.02); box-shadow: 0 0 0 2px #FF8787, 8px 8px 0 0 rgba(0,0,0,0.3); animation: none; }
+        .quest-button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 2px #FF8787, 2px 2px 0 0 rgba(0,0,0,0.3); }
+        @media (max-width: 767px) { .quest-button { padding: 12px 24px; font-size: 1rem; bottom: 20px; right: 20px; min-width: 160px; } }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1001; align-items: center; justify-content: center; }
+        .modal-content { background: #F5F5DC; border: 4px solid #8B4513; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 0 0 2px #A0522D, 8px 8px 0 0 rgba(0,0,0,0.5); position: relative; }
+        .modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; background: #DC143C; border: 2px solid #8B0000; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; font-weight: bold; box-shadow: 2px 2px 0 0 rgba(0,0,0,0.5); }
+        .modal-close:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 0 rgba(0,0,0,0.5); }
+        .modal-close:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 rgba(0,0,0,0.5); }
+        .modal-title { font-size: 1.6rem; color: #8B4513; margin-bottom: 16px; font-weight: bold; text-align: center; text-shadow: 1px 1px 0 rgba(0,0,0,0.1); }
+        .modal-description { color: #654321; margin-bottom: 20px; line-height: 1.6; text-align: center; }
+        .modal-message { background: #FFF9C4; border: 2px solid #F9A825; padding: 16px; margin-bottom: 24px; text-align: center; font-style: italic; color: #5D4037; box-shadow: inset 0 0 8px rgba(0,0,0,0.1); }
+        .modal-buttons { display: flex; gap: 16px; justify-content: center; }
+        @media (max-width: 767px) { .modal-buttons { flex-direction: column; } }
+        .modal-button { flex: 1; padding: 12px 24px; border: 3px solid; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.1s ease; position: relative; }
+        .modal-button.video { background: #4CAF50; border-color: #388E3C; color: white; box-shadow: 0 0 0 1px #66BB6A, 4px 4px 0 0 rgba(0,0,0,0.3); }
+        .modal-button.video:hover { transform: translate(-2px, -2px); box-shadow: 0 0 0 1px #66BB6A, 6px 6px 0 0 rgba(0,0,0,0.3); }
+        .modal-button.quest { background: #2196F3; border-color: #1976D2; color: white; box-shadow: 0 0 0 1px #42A5F5, 4px 4px 0 0 rgba(0,0,0,0.3); }
+        .modal-button.quest:hover { transform: translate(-2px, -2px); box-shadow: 0 0 0 1px #42A5F5, 6px 6px 0 0 rgba(0,0,0,0.3); }
+        .modal-button:active { transform: translate(1px, 1px); box-shadow: 0 0 0 1px currentColor, 2px 2px 0 0 rgba(0,0,0,0.3); }
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+        .loading-content { text-align: center; background: #F5F5DC; padding: 30px; border: 4px solid #8B4513; box-shadow: 0 0 0 2px #A0522D, 8px 8px 0 0 rgba(0,0,0,0.5); }
+        .loading-spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #4DB6F7; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        .loading-content p { color: #654321; font-weight: bold; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="skyObjectsContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay"> <div class="loading-content"> <div class="loading-spinner"></div> <p>冒険の準備中...</p> </div> </div>
+    <div class="hamburger" id="hamburger"> <span></span><span></span><span></span> </div>
+    <nav class="side-nav" id="sideNav"> <div class="side-nav-item">🏠 ホーム</div> <div class="side-nav-item">⚔️ ジブンクラフト</div> <div class="side-nav-item">🗺️ クエスト</div> <div class="side-nav-item">🌍 Yononaka</div> <div class="side-nav-item">🚀 ミライクラフト</div> </nav>
+    
+    <div class="container">
+        <header class="map-header"> <h1>🗺️ CLAFT クエストマップ</h1> <p>きみだけの冒険物語をつくろう！</p> <button class="adventure-log-button" id="adventureLogBtn"> これまでの冒険を振り返る </button> </header>
+        <div class="stage-grid" id="stageGrid">
+            <!-- ステージ1 -->
+            <div class="stage-node" id="stage-1" data-stage-id="1">
+                <div class="clear-badge">CLEAR!</div>
+                <div class="hero-face"><div class="mouth"></div></div> 
+                <div class="stage-icon">
+                    <img class="icon-image" src="" alt="ステージ1アイコン" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="icon-fallback">🏠</span>
+                    <img class="clear-effect" src="" alt="煙エフェクト" data-effect-type="smoke">
+                </div>
+                <div class="stage-number-badge"><span class="stage-number-text">1</span></div>
+                <div class="stage-info"><h3 class="stage-title"></h3><p class="stage-description"></p></div>
+                <div class="path-line"></div>
+            </div>
+            <!-- ステージ2 -->
+            <div class="stage-node" id="stage-2" data-stage-id="2">
+                <div class="clear-badge">CLEAR!</div>
+                <div class="hero-face"><div class="mouth"></div></div>
+                <div class="stage-icon">
+                    <img class="icon-image" src="" alt="ステージ2アイコン" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="icon-fallback">🌲</span>
+                    <img class="clear-effect" src="" alt="動物エフェクト" data-effect-type="animal">
+                </div>
+                <div class="stage-number-badge"><span class="stage-number-text">2</span></div>
+                <div class="stage-info"><h3 class="stage-title"></h3><p class="stage-description"></p></div>
+                <div class="path-line"></div>
+            </div>
+            <!-- ステージ3 -->
+            <div class="stage-node" id="stage-3" data-stage-id="3">
+                <div class="clear-badge">CLEAR!</div>
+                <div class="hero-face"><div class="mouth"></div></div>
+                <div class="stage-icon">
+                    <img class="icon-image" src="" alt="ステージ3アイコン" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="icon-fallback">⚔️</span>
+                </div>
+                <div class="stage-number-badge"><span class="stage-number-text">3</span></div>
+                <div class="stage-info"><h3 class="stage-title"></h3><p class="stage-description"></p></div>
+                <div class="path-line"></div>
+            </div>
+            <!-- ステージ4 -->
+            <div class="stage-node" id="stage-4" data-stage-id="4">
+                <div class="clear-badge">CLEAR!</div>
+                <div class="hero-face"><div class="mouth"></div></div>
+                <div class="stage-icon">
+                    <img class="icon-image" src="" alt="ステージ4アイコン" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="icon-fallback">🛡️</span>
+                </div>
+                <div class="stage-number-badge"><span class="stage-number-text">4</span></div>
+                <div class="stage-info"><h3 class="stage-title"></h3><p class="stage-description"></p></div>
+                <div class="path-line"></div>
+            </div>
+            <!-- ステージ5 -->
+            <div class="stage-node" id="stage-5" data-stage-id="5">
+                <div class="clear-badge">CLEAR!</div>
+                <div class="hero-face"><div class="mouth"></div></div>
+                <div class="stage-icon">
+                    <img class="icon-image" src="" alt="ステージ5アイコン" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="icon-fallback">👥</span>
+                </div>
+                <div class="stage-number-badge"><span class="stage-number-text">5</span></div>
+                <div class="stage-info"><h3 class="stage-title"></h3><p class="stage-description"></p></div>
+                <div class="path-line"></div>
+            </div>
+            <!-- ステージ6 -->
+            <div class="stage-node" id="stage-6" data-stage-id="6">
+                <div class="clear-badge">CLEAR!</div>
+                <div class="hero-face"><div class="mouth"></div></div>
+                <div class="stage-icon">
+                    <img class="icon-image" src="" alt="ステージ6アイコン" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="icon-fallback">🏰</span>
+                </div>
+                <div class="stage-number-badge"><span class="stage-number-text">6</span></div>
+                <div class="stage-info"><h3 class="stage-title"></h3><p class="stage-description"></p></div>
+            </div>
+        </div>
+    </div>
+    <button class="quest-button" id="mainQuestButton">🔥 次の冒険へ進む！</button>
+    <div class="modal" id="stageModal"> <div class="modal-content"> <button class="modal-close" id="modalCloseBtn">×</button> <h2 class="modal-title" id="modalStageTitle"></h2> <p class="modal-description" id="modalStageDescription"></p> <div class="modal-message" id="modalStageMessage"></div> <div class="modal-buttons"> <button class="modal-button video" id="modalVideoBtn">🎬 動画を見る</button> <button class="modal-button quest" id="modalQuestBtn">⚔️ クエストに挑む</button> </div> </div> </div>
+    
+    <script>
+        // グローバル設定
+        const ADALO_API_ENDPOINT = 'YOUR_ADALO_ENDPOINT/collections/YOUR_PROGRESS_COLLECTION_ID';
+        const ADALO_API_KEY = 'Bearer YOUR_ADALO_API_KEY';
+        const TOTAL_STAGES = 6;
+        const NUM_SKY_OBJECTS = 7; 
+
+        // ステージ静的情報 (変更なし)
+        const stageStaticData = { 1: { title: '君はどんな冒険者？', description: 'この世界の地図をひらいて、CLAFTを冒険しよう！', message: '「この世界をどう歩くかは、自分で決めていい」', iconImage: 'https://via.placeholder.com/64x64/8B4513/FFFFFF?text=House', fallbackIcon: '🏠', clearEffectImage: 'https://via.placeholder.com/32x32/CCCCCC/000000?text=Smoke' }, 2: { title: 'ワクもやエネルギー', description: 'ワクワク・もやもやは問いの原動力になる', message: '「君の感じた"もやもや"が、冒険の出発点」', iconImage: 'https://via.placeholder.com/64x64/228B22/FFFFFF?text=Forest', fallbackIcon: '🌲', clearEffectImage: 'https://via.placeholder.com/32x32/8B4513/FFFFFF?text=Animal' }, 3: { title: '君はどんなキャラ？', description: '自分を育てる育成ゲーム', message: '「自分のスキルツリーを育てるのは、君自身だ」', iconImage: 'https://via.placeholder.com/64x64/4169E1/FFFFFF?text=Sword', fallbackIcon: '⚔️', clearEffectImage: null }, 4: { title: 'どんな道具を持ってる？', description: 'この世界の地図をひらいて、CLAFTを冒険しよう！', message: '「自分のスキルツリーを育てるのは、君自身だ」', iconImage: 'https://via.placeholder.com/64x64/FFD700/000000?text=Shield', fallbackIcon: '🛡️', clearEffectImage: null }, 5: { title: '仲間と冒険するって？', description: 'この世界の地図をひらいて、CLAFTを冒険しよう！', message: '「自分のスキルツリーを育てるのは、君自身だ」', iconImage: 'https://via.placeholder.com/64x64/32CD32/FFFFFF?text=Team', fallbackIcon: '👥', clearEffectImage: null }, 6: { title: '未来のボスと向き合う', description: 'この世界の地図をひらいて、CLAFTを冒険しよう！', message: '「自分のスキルツリーを育てるのは、君自身だ」', iconImage: 'https://via.placeholder.com/64x64/8B0000/FFFFFF?text=Boss', fallbackIcon: '🏰', clearEffectImage: null } };
+        // DOM要素 (変更なし)
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const stageGrid = document.getElementById('stageGrid');
+        const mainQuestButton = document.getElementById('mainQuestButton');
+        const stageModal = document.getElementById('stageModal');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const modalStageTitle = document.getElementById('modalStageTitle');
+        const modalStageDescription = document.getElementById('modalStageDescription');
+        const modalStageMessage = document.getElementById('modalStageMessage');
+        const modalVideoBtn = document.getElementById('modalVideoBtn');
+        const modalQuestBtn = document.getElementById('modalQuestBtn');
+        const skyObjectsContainer = document.getElementById('skyObjectsContainer');
+        
+        let currentUserId = null;
+        let userProgress = {}; 
+        let currentStageIdForModal = null;
+
+        // 背景オブジェクト生成 (変更なし)
+        function createSkyObjects() { skyObjectsContainer.innerHTML = ''; for (let i = 0; i < NUM_SKY_OBJECTS; i++) { const obj = document.createElement('div'); obj.classList.add('sky-object'); let type; const randomValue = Math.random(); if (randomValue < 0.95) { type = 'cloud'; } else { type = 'ufo'; } obj.classList.add(type); obj.style.top = `${Math.random() * 70 + 5}%`; const duration = Math.random() * 25 + 20; obj.style.animationDuration = `${duration}s`; const startY = Math.random() * 10 - 5; const endY = Math.random() * 10 - 5; obj.style.setProperty('--sy', `${startY}px`); obj.style.setProperty('--ey', `${endY}px`); if (Math.random() < 0.5) { obj.style.left = `-${Math.random() * 100 + 100}px`; obj.style.animationName = 'float-sky-ltr'; } else { obj.style.right = `-${Math.random() * 100 + 100}px`; obj.style.animationName = 'float-sky-rtl'; } obj.style.animationDelay = `${Math.random() * duration * 0.8}s`; skyObjectsContainer.appendChild(obj); } }
+        
+        // ローディング表示、ユーザーID取得、Adalo API連携 (変更なし)
+        function showLoading(show) { loadingOverlay.style.display = show ? 'flex' : 'none'; }
+        function getUserIdFromUrl() { const params = new URLSearchParams(window.location.search); return params.get('userId'); }
+        async function fetchUserProgress(userId) { showLoading(true); console.log(`Fetching progress for userId: ${userId}`); return new Promise(resolve => { setTimeout(() => { const dummyApiResponse = []; const progress = {}; if (dummyApiResponse.length === 0 && userId !== 'testUserAllClear') { progress[1] = 'current'; for (let i = 2; i <= TOTAL_STAGES; i++) { progress[i] = 'locked'; } } else if (userId === 'testUserAllClear') { for (let i = 1; i <= TOTAL_STAGES; i++) { progress[i] = 'completed'; } } else { for (let i = 1; i <= TOTAL_STAGES; i++) { const record = dummyApiResponse.find(r => r.stageId === i); progress[i] = record ? record.status : (i === 1 ? 'current' : 'locked'); } } console.log('Dummy progress fetched:', progress); showLoading(false); resolve(progress); }, 1000); }); }
+        async function saveUserProgress(userId, stageId, newStatus) { showLoading(true); console.log(`Saving progress for userId: ${userId}, stageId: ${stageId}, status: ${newStatus}`); return new Promise(resolve => { setTimeout(() => { userProgress[stageId] = newStatus; console.log('Dummy progress saved:', userProgress); showLoading(false); resolve(true); }, 500); }); }
+        
+        // 画面表示更新 (変更なし)
+        function updateStageDisplay() { let currentStageExists = false; let allStagesCompleted = true; for (let i = 1; i <= TOTAL_STAGES; i++) { const stageNode = document.getElementById(`stage-${i}`); if (!stageNode) continue; const status = userProgress[i] || 'locked'; stageNode.classList.remove('completed', 'current', 'locked'); stageNode.classList.add(status); if (status !== 'completed') { allStagesCompleted = false; } const staticInfo = stageStaticData[i]; stageNode.querySelector('.stage-title').textContent = staticInfo.title; stageNode.querySelector('.stage-description').textContent = staticInfo.description; const iconImg = stageNode.querySelector('.stage-icon img.icon-image'); const fallbackSpan = stageNode.querySelector('.stage-icon .icon-fallback'); if (iconImg) { iconImg.src = staticInfo.iconImage; iconImg.style.display = 'block'; fallbackSpan.style.display = 'none'; fallbackSpan.textContent = staticInfo.fallbackIcon; } const clearEffectImg = stageNode.querySelector('.clear-effect'); if (clearEffectImg) { if (status === 'completed' && staticInfo.clearEffectImage) { clearEffectImg.src = staticInfo.clearEffectImage; clearEffectImg.style.display = 'block'; } else { clearEffectImg.style.display = 'none'; } } const heroFace = stageNode.querySelector('.hero-face'); if (heroFace) { if (status === 'current') { heroFace.style.display = 'block'; currentStageExists = true; } else { heroFace.style.display = 'none'; } } } if (allStagesCompleted) { mainQuestButton.textContent = '🎉 全ての冒険を達成！'; mainQuestButton.disabled = true; } else if (!currentStageExists) { mainQuestButton.textContent = '❓ 現在地不明'; mainQuestButton.disabled = true; } else { mainQuestButton.textContent = '🔥 次の冒険へ進む！'; mainQuestButton.disabled = false; } }
+
+        // モーダル処理 (変更なし)
+        function openStageModal(stageId) { const status = userProgress[stageId]; if (status === 'locked') { alert('このステージはまだ開放されていません！'); return; } currentStageIdForModal = stageId; const staticInfo = stageStaticData[stageId]; modalStageTitle.textContent = `ステージ ${stageId}: ${staticInfo.title}`; modalStageDescription.textContent = staticInfo.description; modalStageMessage.textContent = staticInfo.message; modalQuestBtn.style.display = (status === 'current') ? 'block' : 'none'; stageModal.style.display = 'flex'; }
+        function closeStageModal() { stageModal.style.display = 'none'; currentStageIdForModal = null; }
+        
+        // イベントリスナー (変更なし)
+        const hamburger = document.getElementById('hamburger'); const sideNav = document.getElementById('sideNav');
+        hamburger.addEventListener('click', () => { hamburger.classList.toggle('active'); sideNav.classList.toggle('active'); });
+        document.addEventListener('click', (e) => { if (sideNav.classList.contains('active') && !hamburger.contains(e.target) && !sideNav.contains(e.target)) { hamburger.classList.remove('active'); sideNav.classList.remove('active'); }});
+        document.querySelectorAll('.stage-node').forEach(node => { node.addEventListener('click', () => { const stageId = node.dataset.stageId; openStageModal(parseInt(stageId)); }); });
+        modalCloseBtn.addEventListener('click', closeStageModal);
+        stageModal.addEventListener('click', (e) => { if (e.target === stageModal) closeStageModal(); });
+        modalVideoBtn.addEventListener('click', () => { alert(`ステージ ${currentStageIdForModal} の動画コンテンツを表示します。（実装は別途）`); });
+        modalQuestBtn.addEventListener('click', async () => { if (!currentStageIdForModal || userProgress[currentStageIdForModal] !== 'current') return; const success = await saveUserProgress(currentUserId, currentStageIdForModal, 'completed'); if (success) { userProgress[currentStageIdForModal] = 'completed'; const nextStageId = currentStageIdForModal + 1; if (nextStageId <= TOTAL_STAGES) { const nextSuccess = await saveUserProgress(currentUserId, nextStageId, 'current'); if (nextSuccess) { userProgress[nextStageId] = 'current'; } else { alert('次のステージの解放に失敗しました。'); } } updateStageDisplay(); closeStageModal(); setTimeout(() => { alert(`ステージ ${currentStageIdForModal} クリア！🎉 ${nextStageId <= TOTAL_STAGES && userProgress[nextStageId] === 'current' ? '次の冒険へ進もう！' : '全ての冒険を達成しました！'}`); }, 100); } else { alert('進捗の保存に失敗しました。'); } });
+        mainQuestButton.addEventListener('click', () => { const currentStageEntry = Object.entries(userProgress).find(([_, status]) => status === 'current'); if (currentStageEntry) { openStageModal(parseInt(currentStageEntry[0])); } else if (Object.values(userProgress).every(s => s === 'completed')) { /* no-op */ } else { alert('冒険を始める準備ができていません。ページをリロードしてください。'); } });
+        document.getElementById('adventureLogBtn').addEventListener('click', () => { let logText = "📖 これまでの冒険の記録\n\n"; let completedCount = 0; for (let i = 1; i <= TOTAL_STAGES; i++) { if (userProgress[i] === 'completed') { logText += `ステージ${i}: ${stageStaticData[i].title} - クリア済み\n`; completedCount++; } else if (userProgress[i] === 'current') { logText += `ステージ${i}: ${stageStaticData[i].title} - 挑戦中\n`; } } if (completedCount === 0 && !Object.values(userProgress).some(s => s === 'current')) { logText += 'まだ冒険は始まったばかりです！'; } alert(logText); });
+
+        // 初期化処理 (変更なし)
+        async function initializeApp() { createSkyObjects(); currentUserId = getUserIdFromUrl(); if (!currentUserId) { currentUserId = 'testUser001'; console.warn('User ID not found, using default testUser001'); } userProgress = await fetchUserProgress(currentUserId); updateStageDisplay(); }
+        
+        // ▼ PWA: Service Worker 登録 ▼
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+        // ▲ PWA: Service Worker 登録 ▲
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
